@@ -1,0 +1,76 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  static_analysis_and_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 'Flutter Doctor'
+        run: flutter doctor -v
+
+      - name: 'Get Dependencies'
+        run: flutter pub get
+
+      - name: 'Analyze Code'
+        run: flutter analyze
+
+      - name: 'Run Tests'
+        run: flutter test
+
+  build_web:
+    needs: static_analysis_and_tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 'Get Dependencies'
+        run: flutter pub get
+
+      - name: 'Build Web (CanvasKit)'
+        run: flutter build web --release --web-renderer canvaskit
+
+      - name: 'Upload Web Build Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+
+  deploy:
+    needs: build_web
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 'Download Web Build Artifact'
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+
+      - name: 'Deploy to Hostinger'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps # Use ftps for secure connection
+          port: 21
+          local-dir: build/web
+          server-dir: ${{ github.ref == 'refs/heads/main' && '/' || '/dev/' }} # Deploy to root for main, /dev/ for dev branch
+          state-name: .ftp-deploy-sync-state.json
