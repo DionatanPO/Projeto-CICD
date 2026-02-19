@@ -6,6 +6,11 @@ on:
       - main
       - dev
 
+# Evita que múltiplos deploys rodem ao mesmo tempo
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static_analysis_and_tests:
     runs-on: ubuntu-latest
@@ -16,6 +21,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true # Ativa o cache para acelerar o processo
 
       - name: 'Flutter Doctor'
         run: flutter doctor -v
@@ -39,6 +45,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
       - name: 'Get Dependencies'
         run: flutter pub get
@@ -63,14 +70,14 @@ jobs:
           name: web-build
           path: build/web
 
-      - name: 'Deploy to Hostinger'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+      - name: 'Deploy to Hostinger via SSH'
+        uses: easingthemes/ssh-deploy@main
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps # Use ftps for secure connection
-          port: 21
-          local-dir: build/web
-          server-dir: ${{ github.ref == 'refs/heads/main' && '/' || '/dev/' }} # Deploy to root for main, /dev/ for dev branch
-          state-name: .ftp-deploy-sync-state.json
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
+          SOURCE: "build/web/"
+          REMOTE_HOST: ${{ secrets.SSH_HOST }}
+          REMOTE_USER: ${{ secrets.SSH_USER }}
+          # Se for main, usa o REMOTE_PATH direto. Se for dev, adiciona /dev ao final.
+          TARGET: ${{ github.ref == 'refs/heads/main' && secrets.REMOTE_PATH || format('{0}/dev', secrets.REMOTE_PATH) }}
+          EXCLUDE: "/dist/, /node_modules/"
