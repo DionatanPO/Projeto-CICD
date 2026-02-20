@@ -33,3 +33,5 @@ Domínio de DevOps: Capacidade de configurar e manter esteiras de entrega contí
 Segurança de Dados: Uso rigoroso de Secrets, impedindo a exposição de credenciais do servidor.
 Visão de Produto: Implementação de um fluxo que permite testar funcionalidades em /dev antes de impactar o usuário final na main.
 Desenvolvido por Dionatan como parte do portfólio de Flutter Full Stack.
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0f52a32f-ddaf-46cf-805f-a5cb56911be2" />
